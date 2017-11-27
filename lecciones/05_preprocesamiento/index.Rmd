@@ -95,18 +95,23 @@ Normalmente se realizan algunas de las siguientes acciones para corregir errores
 
 - manejo de texto
 
+  - tolower/toupper
+  - strsplit
   - gsub
   - grep/grepl
   - str_trim
-  - strsplit
-  - tolower
+  - nchar
+  - paste
+  - substr
   
 - merge
 
 - dplyr
 
-  - filter
   - select
+  - filter
+  - arrange
+  - rename
   - mutate
 
 ---
@@ -114,13 +119,13 @@ Normalmente se realizan algunas de las siguientes acciones para corregir errores
 ## Partición
 
 ```{r subsetting, echo=T}
-x = data.frame('var1'=sample(1:5),'var2'=sample(6:10),'var3'=sample(11:15))
+x = data.frame('var1'=sample(1:3),'var2'=sample(6:8),'var3'=sample(11:13))
 x
 ```
 Todos los registros de la columna indicada por su respectivo indice
 ```{r, dependson='subsetting', echo=T}
 x[,1]
-```
+``` 
 
 ---
 
@@ -144,4 +149,216 @@ x[(x$var1 <= 3 & x$var3 > 11),]   # AND
 x[(x$var1 <= 3 | x$var3 > 15),]   # OR
 ```
 
-...
+---
+
+## Ordenamiento
+
+```{r, dependson="subsetting", echo=F}
+x
+```
+
+```{r, dependson="subsetting"}
+sort(x$var1)  # ordenamiento ascendente por defecto
+sort(x$var1,decreasing=TRUE)
+```
+
+---
+
+## Texto a minúscula/mayúscula
+
+```{r becal, echo=F}
+becal = read.csv('../../proyecto/data/becal2017.csv', header = T, stringsAsFactors = F)
+```
+
+```{r, dependson="becal", echo=T}
+becal[1:5,'Sexo']
+```
+
+```{r, dependson="becal", echo=T}
+tolower(becal[,'Sexo'])[1:5]   # convertir todas las letras de la palabra a minúsculas
+toupper(becal[,'Sexo'])[1:5]   # convertir todas las letras de la palabra a mayúsculas
+```
+
+---
+
+## strplit: divir texto
+
+```{r, dependson="becal", echo=T}
+becal[1:2,'Fecha.firma.de.Contrato']
+strsplit(becal[1:2,'Fecha.firma.de.Contrato'], '/')  # divir el texto de fecha utilizando la barra como separador 
+```
+
+```{r, dependson="becal", echo=F}
+strsplit(becal[1:2,'Fecha.firma.de.Contrato'], '/')[[1]]   # acceder al primer elemento de la lista
+```
+
+---
+
+## gsub: remplazar caracter en texto
+
+```{r, dependson="becal", echo=T}
+becal[1:2,'C.I.']
+gsub(',', '', becal[,'C.I.'])[1:2]   # eliminar (o remplazar por vacio) las comas del texto cédula
+```
+
+---
+
+## grep/grepl: búscar caracteres en texto
+
+```{r becalc, echo=F}
+becal_c = read.csv('../../proyecto/data/becal-cobertura.csv', header = T, stringsAsFactors = F)
+```
+
+```{r, dependson="becalc", echo=T}
+becal_c[c(1,210,843),'Total.General']
+grep('€',becal_c[c(1,210,843),'Total.General'])  # buscar la presenciar de caracter euro
+```
+
+```{r, dependson="becalc", echo=T}
+grepl('€',becal_c[c(1,210,843),'Total.General'])  # buscar la presenciar de caracter euro
+```
+
+---
+
+## str_trim: eliminación de espacios vacíos redundantes
+
+```{r, echo=T}
+library(stringr)
+```
+
+```{r, dependson="becal", echo=T}
+becal[1:2,'Condición']
+str_trim(becal[1:2,'Condición'])  # eliminar espacios vacío al inicio y final del texto
+```
+
+---
+
+## Otras funciones de manejo de texto
+
+```{r, dependson="becalc", echo=T}
+becal_c[1,'Universidad.de.Destino']
+nchar(becal_c[1,'Universidad.de.Destino'])  # contar el número de caracteres del texto
+substr(becal_c[1,'Universidad.de.Destino'],16,20)  # extraer parte del texto
+```
+
+---
+
+## Otras funciones de manejo de texto
+
+```{r, dependson="becalc", echo=T}
+becal_c[1,c(5,6)]
+paste0(becal_c[1,5],' (',becal_c[1,6],')')
+```
+
+---
+
+## Unir datasets con merge
+
+```{r, dependson="becal", echo=F}
+becal[,'C.I.'] = gsub(',', '', becal[,'C.I.'])
+paste0('Tamaño del dataset becal2017.csv (becal): ', dim(becal)[1], ' filas x ', dim(becal)[2], ' columnas')
+```
+
+```{r, dependson="becalc", echo=F}
+becal_c[,'C.I.'] = gsub('.', '', becal_c[,'C.I.'])
+paste0('Tamaño del dataset becal-cobertura.csv (becal_c): ', dim(becal_c)[1], ' filas x ', dim(becal_c)[2], ' columnas')
+```
+
+Unir ambos datasets de becal utilizando el número de cédula como clave común entre ambos. El parámetro ```all.y``` indica que se descartarán los registros que existan en x pero no en y
+
+```{r, echo=T}
+ambos_becal = merge(becal, becal_c, by.x="C.I.", by.y="C.I.", all.y=TRUE)
+```
+
+```{r, echo=F}
+paste0('Tamaño del dataset final: ', dim(ambos_becal)[1], ' filas x ', dim(ambos_becal)[2], ' columnas')
+```
+
+---
+
+## Manipulación de data frames con dplyr
+
+```{r, echo=F, warning=F}
+library(dplyr)
+```
+
+Dyplyr es un paquete de funcionalidades de R que permite manipular frames de datos de forma conveniente. Sus principales funciones son:
+
+* `select`: obtener un subconjunto de las columnas seleccionadas del data frame
+
+* `filter`: extraer un subconjunto de filas del data frame seleccionadas a partir de condiciones lógicas
+
+* `arrange`: reordena las filas de un data frame
+
+* `rename`: renombra las variables de un data frame
+
+* `mutate`: agregar nuevas variables (columnas) al data frame
+
+---
+
+## Dplyr: select
+
+```{r, echo=T}
+head(select(becal, C.I., Sexo, Edad))  # head sirve para mostrar las primeras n filas del dataframe
+```
+
+---
+
+## Dplyr: filter
+
+```{r filtro, echo=T}
+dataset_filtrado = filter(becal, Sexo=='Femenino')
+```
+
+```{r, dependson="filtro", echo=F}
+head(select(dataset_filtrado, C.I., Sexo, Edad))
+```
+
+---
+
+## Dplyr: arrange
+
+```{r becal_filtrado, echo=F}
+becal = filter(becal, Edad!="pendiente")
+```
+
+```{r orden, dependson="becal_filtrado", echo=T}
+dataset_ordenado = arrange(becal, Edad)
+```
+
+```{r, dependson="orden", echo=F}
+head(select(dataset_ordenado, C.I., Sexo, Edad), 3)
+```
+
+```{r orden_desc, dependson="becal_filtrado", echo=T}
+dataset_ordenado_desc = arrange(becal, desc(Edad))
+```
+
+```{r, dependson="orden_desc", echo=F}
+head(select(dataset_ordenado_desc, C.I., Sexo, Edad), 3)
+```
+
+---
+
+## Dplyr: rename
+
+```{r renombrado, echo=T}
+becal_renombrado = rename(becal, ci = C.I., sexo = Sexo, edad = Edad)
+```
+
+```{r, dependson="renombrado", echo=F}
+head(select(becal_renombrado, ci, sexo, edad))
+```
+
+---
+
+## Dplyr: mutate
+
+```{r, echo=F}
+source('../../proyecto/utils.R')
+```
+
+```{r, echo=T, warning=F}
+becal_gs = mutate(becal_c, total_gs=5500*convertir_totalgeneral(Total.General))
+head(select(becal_gs, Total.General, total_gs), 5)
+```
